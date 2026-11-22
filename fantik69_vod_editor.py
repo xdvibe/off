@@ -61,16 +61,7 @@ def main():
     duration=float(metadata["format"]["duration"])
     wav=root/"audio.wav"
     run(["ffmpeg","-hide_banner","-loglevel","error","-y","-i",src,"-vn","-ac","1","-ar","16000","-c:a","pcm_s16le",wav])
-    model=WhisperModel("small",device="cpu",compute_type="int8",cpu_threads=4)
-    segments,_=model.transcribe(str(wav),language="ru",beam_size=5,word_timestamps=True,vad_filter=True)
-    words=[]
-    for s in segments:
-        for w in s.words or []:
-            if w.start is not None and w.end is not None and w.word.strip():
-                words.append(dict(start=float(w.start),end=float(w.end),word=w.word.strip()))
-    del model
-    print("Transcribed",len(words),"words")
-    if len(words)<50:raise RuntimeError("Not enough speech to select clips.")
+    # Use direct float32 audio arrays to avoid Python 3.14 / PyAV metadata_errors incompatibility.
     with wave.open(str(wav),"rb") as w:
         sr=w.getframerate()
         rms=[]
@@ -81,35 +72,64 @@ def main():
             rms.append(float(np.sqrt(np.mean(a*a))) if len(a) else 0.0)
     rms=np.asarray(rms)
     med=float(np.median(rms[rms>0])) if np.any(rms>0) else .01
-    starts=np.array([w["start"] for w in words])
+    length=26.0
+    pre=[]
+    for st in np.arange(5,max(6,duration-length),5):
+        vol=rms[int(st):min(len(rms),int(st+length))]
+        if len(vol)<10:continue
+        peak=float(np.percentile(vol,88)/(med+.003))
+        avg=float(np.mean(vol)/(med+.003))
+        dynamic=float(np.std(vol)/(med+.003))
+        score=min(peak,5)*2.0+min(avg,4)*1.4+min(dynamic,4)*1.7
+        pre.append(dict(start=float(st),end=float(st+length),energy=score))
+    pre.sort(key=lambda x:x["energy"],reverse=True)
+    shortlist=[]
+    for c in pre:
+        if all(abs(c["start"]-q["start"])>=65 for q in shortlist):
+            shortlist.append(c)
+        if len(shortlist)>=28:break
+    print("Candidate moments",len(shortlist),"duration",duration,flush=True)
+    model=WhisperModel("base",device="cpu",compute_type="int8",cpu_threads=4)
     terms=re.compile(r"(ахах|хаха|хех|ору|рофл|пизд|бл[яе]|еб[аё]|жест|угар|треш|ёбан|смеш|офиг|аху|капец|ниху|что за|кек)")
-    candidates=[]
-    length=25
-    for st in np.arange(0,max(1,duration-length),5):
-        en=min(duration,st+length)
-        i=int(np.searchsorted(starts,st))
-        j=int(np.searchsorted(starts,en))
-        if j-i<18:continue
-        phrase=" ".join(x["word"].lower() for x in words[i:j])
-        cues=len(terms.findall(phrase))
-        vol=rms[int(st):min(len(rms),int(en)+1)]
-        energy=float(np.percentile(vol,90)/(med+.001))
-        score=min(cues,8)*2.2+min(energy,8)*1.1+min((j-i)/length,4)*1.5+min(phrase.count("?"),3)*0.7
-        candidates.append(dict(start=float(st),end=float(en),score=score,preview=phrase[:180]))
-    candidates.sort(key=lambda c:c["score"],reverse=True)
+    with wave.open(str(wav),"rb") as w:
+        for index,c in enumerate(shortlist):
+            w.setpos(max(0,int(c["start"]*sr)))
+            buf=w.readframes(int(length*sr))
+            audio=np.frombuffer(buf,dtype="<i2").astype(np.float32)/32768.0
+            if len(audio)<sr*8:continue
+            try:
+                segments,_=model.transcribe(audio,language="ru",beam_size=3,word_timestamps=True,vad_filter=True,condition_on_previous_text=False)
+                words=[]
+                for seg in segments:
+                    for token in seg.words or []:
+                        if token.start is not None and token.end is not None and token.word.strip():
+                            words.append(dict(start=float(c["start"]+token.start),end=float(c["start"]+token.end),word=token.word.strip()))
+                phrase=" ".join(x["word"].lower() for x in words)
+                cues=len(terms.findall(phrase))
+                c["score"]=c["energy"]*.32+min(cues,9)*2.7+min(len(words),60)*.13+min(phrase.count("?"),3)*.7
+                c["preview"]=phrase[:220]
+                c["words"]=words
+                print("Candidate",index+1,"/",len(shortlist),"time",c["start"],"words",len(words),"score",round(c["score"],2),flush=True)
+            except Exception as err:
+                print("Transcription candidate failed",c["start"],repr(err),flush=True)
+                c["score"]=-1
+    del model
+    shortlisted=[c for c in shortlist if c.get("score",-1)>0 and len(c.get("words",[]))>=8]
+    shortlisted.sort(key=lambda c:c["score"],reverse=True)
     picked=[]
-    for c in candidates:
-        if all(c["start"]>p["end"]+75 or c["end"]<p["start"]-75 for p in picked):
+    for c in shortlisted:
+        if all(c["start"]>p["end"]+60 or c["end"]<p["start"]-60 for p in picked):
             picked.append(c)
             if len(picked)==4:break
     if len(picked)<4:
-        for c in candidates:
-            if all(c["start"]>p["end"]+10 or c["end"]<p["start"]-10 for p in picked):
+        for c in shortlisted:
+            if c not in picked and all(c["start"]>p["end"]+8 or c["end"]<p["start"]-8 for p in picked):
                 picked.append(c)
                 if len(picked)==4:break
-    if len(picked)<4:raise RuntimeError("Not enough distinct segments.")
+    if len(picked)<4:raise RuntimeError("Found fewer than 4 speech moments.")
     picked.sort(key=lambda c:c["start"])
-    (root/"selected_moments.json").write_text(json.dumps(picked,ensure_ascii=False,indent=2),encoding="utf-8")
+    words=[x for c in picked for x in c["words"]]
+    (root/"selected_moments.json").write_text(json.dumps([dict(start=c["start"],end=c["end"],score=c["score"],preview=c["preview"]) for c in picked],ensure_ascii=False,indent=2),encoding="utf-8")
     clips=root/"clips";clips.mkdir(exist_ok=True)
     for i,c in enumerate(picked,1):
         st,en=c["start"],c["end"]
