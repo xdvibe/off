@@ -1,0 +1,38 @@
+name: Fantik69 four new captioned highlights
+on:
+  push:
+    branches:
+      - fantik69-vod-2936145096
+    paths:
+      - 'fantik69_vod_editor.py'
+      - '.github/workflows/fantik69-vod.yml'
+  workflow_dispatch:
+jobs:
+  make-clips:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare video dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install 'yt-dlp>=2026.1.1' 'faster-whisper>=1.1' numpy
+          sudo apt-get update -qq
+          sudo apt-get install -y ffmpeg fonts-dejavu-core
+      - name: Download requested Twitch VOD and make 4 clips
+        run: |
+          python -u fantik69_vod_editor.py --url 'https://m.twitch.tv/videos/2936145096'
+      - name: Upload four finished videos and subtitles
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Fantik69-four-new-clips-subtitled
+          path: |
+            fantik69_result/clips/*.mp4
+            fantik69_result/clips/*.ass
+            fantik69_result/*.zip
+            fantik69_result/selected_moments.json
+          retention-days: 7
+          if-no-files-found: warn
