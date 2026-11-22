@@ -54,7 +54,7 @@ def main():
     args=p.parse_args()
     root=Path("fantik69_result")
     root.mkdir(exist_ok=True)
-    run(["yt-dlp","--no-playlist","--no-part","-S","res:720","--retries","10","--fragment-retries","10","--merge-output-format","mp4","-o",str(root/"vod.%(ext)s"),args.url])
+    run(["yt-dlp","--no-playlist","--no-part","-S","res:360","--retries","10","--fragment-retries","10","--merge-output-format","mp4","-o",str(root/"vod.%(ext)s"),args.url])
     src=next(p for p in root.glob("vod.*") if p.suffix.lower() in (".mp4",".mkv",".webm"))
     print("Downloaded source:",src,src.stat().st_size)
     metadata=json.loads(subprocess.check_output(["ffprobe","-v","quiet","-print_format","json","-show_format",str(src)]))
@@ -87,9 +87,9 @@ def main():
     for c in pre:
         if all(abs(c["start"]-q["start"])>=65 for q in shortlist):
             shortlist.append(c)
-        if len(shortlist)>=28:break
+        if len(shortlist)>=12:break
     print("Candidate moments",len(shortlist),"duration",duration,flush=True)
-    model=WhisperModel("base",device="cpu",compute_type="int8",cpu_threads=4)
+    model=WhisperModel("tiny",device="cpu",compute_type="int8",cpu_threads=4)
     terms=re.compile(r"(ахах|хаха|хех|ору|рофл|пизд|бл[яе]|еб[аё]|жест|угар|треш|ёбан|смеш|офиг|аху|капец|ниху|что за|кек)")
     with wave.open(str(wav),"rb") as w:
         for index,c in enumerate(shortlist):
@@ -137,12 +137,12 @@ def main():
         make_ass(words,st,en,ass)
         dest=clips/f"fantik69_{i:02}.mp4"
         filt=("[0:v]split=2[bg][fg];"
-              "[bg]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,gblur=sigma=24[blur];"
+              "[bg]scale=360:640:force_original_aspect_ratio=increase,crop=360:640,gblur=sigma=8,scale=1080:1920[blur];"
               "[fg]scale=1080:1920:force_original_aspect_ratio=decrease[front];"
               "[blur][front]overlay=(W-w)/2:(H-h)/2[tmp];"
               "[tmp]ass="+str(ass.resolve()).replace("\\","\\\\").replace(":","\\:")+"[v]")
         run(["ffmpeg","-hide_banner","-loglevel","error","-stats","-y","-ss",st,"-i",src,"-t",en-st,
-             "-filter_complex",filt,"-map","[v]","-map","0:a:0?","-r","30","-c:v","libx264","-preset","veryfast","-crf","23","-pix_fmt","yuv420p","-c:a","aac","-b:a","160k","-movflags","+faststart",dest])
+             "-filter_complex",filt,"-map","[v]","-map","0:a:0?","-r","30","-c:v","libx264","-preset","ultrafast","-crf","25","-pix_fmt","yuv420p","-c:a","aac","-b:a","160k","-movflags","+faststart",dest])
         print("CLIP",i,dest,dest.stat().st_size)
     with zipfile.ZipFile(root/"Fantik69_4_NEW_captioned.mp4s.zip","w",zipfile.ZIP_DEFLATED,compresslevel=0) as f:
         for vid in clips.glob("*.mp4"):
