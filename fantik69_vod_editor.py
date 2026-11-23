@@ -82,12 +82,15 @@ def main():
         dynamic=float(np.std(vol)/(med+.003))
         score=min(peak,5)*2.0+min(avg,4)*1.4+min(dynamic,4)*1.7
         pre.append(dict(start=float(st),end=float(st+length),energy=score))
+    # Exclude every previously delivered clip, including prior alternative outputs.
+    already_used=[75,485,1555,1765,2690,3485,3760]
+    pre=[c for c in pre if all(abs(c["start"]-old)>=80 for old in already_used)]
     pre.sort(key=lambda x:x["energy"],reverse=True)
     shortlist=[]
     for c in pre:
         if all(abs(c["start"]-q["start"])>=65 for q in shortlist):
             shortlist.append(c)
-        if len(shortlist)>=12:break
+        if len(shortlist)>=22:break
     print("Candidate moments",len(shortlist),"duration",duration,flush=True)
     model=WhisperModel("tiny",device="cpu",compute_type="int8",cpu_threads=4)
     terms=re.compile(r"(ахах|хаха|хех|ору|рофл|пизд|бл[яе]|еб[аё]|жест|угар|треш|ёбан|смеш|офиг|аху|капец|ниху|что за|кек)")
@@ -144,7 +147,7 @@ def main():
         run(["ffmpeg","-hide_banner","-loglevel","error","-stats","-y","-ss",st,"-i",src,"-t",en-st,
              "-filter_complex",filt,"-map","[v]","-map","0:a:0?","-r","30","-c:v","libx264","-preset","ultrafast","-crf","25","-pix_fmt","yuv420p","-c:a","aac","-b:a","160k","-movflags","+faststart",dest])
         print("CLIP",i,dest,dest.stat().st_size)
-    with zipfile.ZipFile(root/"Fantik69_4_NEW_captioned.mp4s.zip","w",zipfile.ZIP_DEFLATED,compresslevel=0) as f:
+    with zipfile.ZipFile(root/"Fantik69_4_EXTRA_NEW_captioned.mp4s.zip","w",zipfile.ZIP_DEFLATED,compresslevel=0) as f:
         for vid in clips.glob("*.mp4"):
             f.write(vid,arcname=vid.name)
     print("FINISHED!",root/"Fantik69_4_NEW_captioned.mp4s.zip")
