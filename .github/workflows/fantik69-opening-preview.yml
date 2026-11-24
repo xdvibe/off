@@ -1,0 +1,29 @@
+name: Preview opening sax scene Fantik69
+on:
+  push:
+    branches: [fantik69-nov22-four-highlight-20261125]
+    paths: ['.github/workflows/fantik69-opening-preview.yml']
+  workflow_dispatch:
+jobs:
+  opening:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          python -m pip install -q -U yt-dlp
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+      - name: Download only first 2 minutes
+        run: |
+          mkdir -p opening
+          yt-dlp --no-playlist --download-sections '*00:00:00-00:02:00' -S 'res:360' --merge-output-format mp4 -o 'opening/first2min.%(ext)s' 'https://www.twitch.tv/videos/2937332065'
+          ffmpeg -y -hide_banner -loglevel error -i opening/first2min.mp4 -vf "fps=1/15,scale=450:-2,tile=4x2" -frames:v 1 opening/contact.jpg
+      - name: Upload opening scene sample
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Fantik69-first-two-minutes
+          path: opening/*
+          retention-days: 3
+          if-no-files-found: warn
