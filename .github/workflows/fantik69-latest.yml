@@ -1,0 +1,21 @@
+name: Locate Fantik69 newest VOD
+on:
+  push:
+    branches: [fantik69-new-vod-design-20261125]
+    paths: ['check_latest_vod.py','.github/workflows/fantik69-latest.yml']
+  workflow_dispatch:
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - run: python -m pip install -q -U yt-dlp requests
+      - run: python -u check_latest_vod.py
+      - name: Upload result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Fantik69-latest-VOD-metadata
+          path: latest_vods.json
+          if-no-files-found: warn
