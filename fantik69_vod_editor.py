@@ -19,7 +19,7 @@ def make_ass(words,start,end,path):
     all_words=[w for w in words if w["start"]<end and w["end"]>start]
     groups=[];group=[]
     for w in all_words:
-        if group and (len(group)>=5 or w["start"]-group[-1]["end"]>0.7):
+        if group and (len(group)>=4 or sum(len(t["word"])+1 for t in group)+len(w["word"])>27 or w["start"]-group[-1]["end"]>0.7):
             groups.append(group);group=[]
         group.append(w)
     if group:groups.append(group)
@@ -27,11 +27,11 @@ def make_ass(words,start,end,path):
 ScriptType: v4.00+
 PlayResX: 1080
 PlayResY: 1920
-WrapStyle: 2
+WrapStyle: 0
 ScaledBorderAndShadow: yes
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Caption,DejaVu Sans,70,&H00FFFFFF,&H0000FFFF,&H00000000,&H8A000000,1,0,0,0,100,100,0,0,1,5,1,2,48,48,405,1
+Style: Caption,DejaVu Sans,63,&H00FFFFFF,&H0000FFFF,&H00000000,&H8A000000,1,0,0,0,100,100,0,0,1,5,1,2,80,80,405,1
 Style: Brand,DejaVu Sans,38,&H00FFFFFF,&H00FFFFFF,&H00000000,&H70000000,1,0,0,0,100,100,0,0,1,2,1,8,35,35,180,1
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
@@ -83,14 +83,14 @@ def main():
         score=min(peak,5)*2.0+min(avg,4)*1.4+min(dynamic,4)*1.7
         pre.append(dict(start=float(st),end=float(st+length),energy=score))
     # Exclude every previously delivered clip, including prior alternative outputs.
-    already_used=[75,485,1555,1765,2690,3485,3760]
-    pre=[c for c in pre if all(abs(c["start"]-old)>=80 for old in already_used)]
+    already_used=[75,390,485,895,1375,1555,1765,2690,3485,3760,3865]
+    pre=[c for c in pre if all(abs(c["start"]-old)>=85 for old in already_used)]
     pre.sort(key=lambda x:x["energy"],reverse=True)
     shortlist=[]
     for c in pre:
         if all(abs(c["start"]-q["start"])>=65 for q in shortlist):
             shortlist.append(c)
-        if len(shortlist)>=22:break
+        if len(shortlist)>=28:break
     print("Candidate moments",len(shortlist),"duration",duration,flush=True)
     model=WhisperModel("tiny",device="cpu",compute_type="int8",cpu_threads=4)
     terms=re.compile(r"(ахах|хаха|хех|ору|рофл|пизд|бл[яе]|еб[аё]|жест|угар|треш|ёбан|смеш|офиг|аху|капец|ниху|что за|кек)")
@@ -136,9 +136,9 @@ def main():
     clips=root/"clips";clips.mkdir(exist_ok=True)
     for i,c in enumerate(picked,1):
         st,en=c["start"],c["end"]
-        ass=clips/f"fantik69_{i:02}.ass"
+        ass=clips/f"Fantik69_{i+8:02}.ass"
         make_ass(words,st,en,ass)
-        dest=clips/f"fantik69_{i:02}.mp4"
+        dest=clips/f"Fantik69_{i+8:02}.mp4"
         filt=("[0:v]split=2[bg][fg];"
               "[bg]scale=360:640:force_original_aspect_ratio=increase,crop=360:640,gblur=sigma=8,scale=1080:1920[blur];"
               "[fg]scale=1080:1920:force_original_aspect_ratio=decrease[front];"
@@ -147,7 +147,7 @@ def main():
         run(["ffmpeg","-hide_banner","-loglevel","error","-stats","-y","-ss",st,"-i",src,"-t",en-st,
              "-filter_complex",filt,"-map","[v]","-map","0:a:0?","-r","30","-c:v","libx264","-preset","ultrafast","-crf","25","-pix_fmt","yuv420p","-c:a","aac","-b:a","160k","-movflags","+faststart",dest])
         print("CLIP",i,dest,dest.stat().st_size)
-    with zipfile.ZipFile(root/"Fantik69_4_EXTRA_NEW_captioned.mp4s.zip","w",zipfile.ZIP_DEFLATED,compresslevel=0) as f:
+    with zipfile.ZipFile(root/"Fantik69_09-12_NEW_with_subtitles.zip","w",zipfile.ZIP_DEFLATED,compresslevel=0) as f:
         for vid in clips.glob("*.mp4"):
             f.write(vid,arcname=vid.name)
     print("FINISHED!",root/"Fantik69_4_NEW_captioned.mp4s.zip")
