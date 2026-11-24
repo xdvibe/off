@@ -1,0 +1,37 @@
+name: Four NEW Fantik69 November 22 highlights
+on:
+  push:
+    branches: [fantik69-nov22-four-highlight-20261125]
+    paths:
+      - 'fantik69_nov22_edit.py'
+      - '.github/workflows/fantik69-nov22-highlights.yml'
+  workflow_dispatch:
+jobs:
+  create:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Dependencies for speech subtitles and video editing
+        run: |
+          python -m pip install -q --upgrade yt-dlp faster-whisper numpy
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg fonts-dejavu-core
+      - name: Create four distinctive 9x16 videos with hooks and yellow words
+        run: |
+          python -u fantik69_nov22_edit.py
+      - name: Upload final MP4, captions and preview stills
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Fantik69-NOV22-four-new-hooked-shorts
+          path: |
+            fantik69_nov22/clips/*.mp4
+            fantik69_nov22/clips/*.ass
+            fantik69_nov22/clips/*.jpg
+            fantik69_nov22/*.zip
+            fantik69_nov22/selected_moments.json
+          retention-days: 7
+          if-no-files-found: warn
