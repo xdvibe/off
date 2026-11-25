@@ -1,0 +1,27 @@
+name: Evaluate Fantik69 moment before editing
+on:
+  push:
+    branches: [fantik69-moment-first-20261126]
+    paths: [check_viral_moments.py, .github/workflows/fantik69-moment-qa.yml]
+  workflow_dispatch:
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          python -m pip install -q -U yt-dlp faster-whisper numpy Pillow
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+      - run: python -u check_viral_moments.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Fantik69-two-recent-moments-reviews
+          path: moment_candidates/
+          compression-level: 0
+          retention-days: 5
+          if-no-files-found: warn
