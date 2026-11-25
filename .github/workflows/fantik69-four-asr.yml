@@ -1,0 +1,33 @@
+name: Fantik69 words for four nonchat highlights
+on:
+  push:
+    branches: [fantik69-nonchat-14sec-20261125]
+    paths: ['transcribe_best_four.py','.github/workflows/fantik69-four-asr.yml']
+  workflow_dispatch:
+jobs:
+  transcribe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          run-id: 45558707909
+          name: Fantik69-nonchat-best-moments
+          path: samples
+          github-token: ${{ github.token }}
+      - run: |
+          python -m pip install -q faster-whisper numpy
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+      - run: python -u transcribe_best_four.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Fantik69-4-best-word-timings
+          path: transcript_best.json
+          if-no-files-found: warn
+          retention-days: 5
