@@ -1,0 +1,42 @@
+name: Fantik69 SINGLE client approval sample
+on:
+  push:
+    branches: [fantik69-one-demo-ref-20261125]
+    paths:
+      - render_fantik_one_demo.py
+      - .github/workflows/fantik69-one-demo.yml
+  workflow_dispatch:
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          run-id: 45623613911
+          name: Fantik69-demo-scene-raw
+          path: demo_choices
+          github-token: ${{ github.token }}
+      - name: Prepare ffmpeg, captions and graphics
+        run: |
+          python -m pip install -q Pillow numpy faster-whisper
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg fonts-dejavu-core
+      - name: Render one 12.8 sec vertical client demonstration
+        run: python -u render_fantik_one_demo.py
+      - name: Upload video and visual QA frames
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Fantik69-ONE-CLIENT-DEMO-MP4
+          path: |
+            client_demo/Fantik69_DEMO_FOR_CLIENT.mp4
+            client_demo/proof_*.jpg
+            client_demo/transcript.json
+          retention-days: 7
+          compression-level: 0
+          if-no-files-found: warn
