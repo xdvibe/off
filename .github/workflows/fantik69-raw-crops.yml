@@ -1,0 +1,41 @@
+name: Fantik69 clean raw camera segments for reframe
+on:
+  push:
+    branches: [fantik69-clean-raw-clips-20261125]
+    paths: ['.github/workflows/fantik69-raw-crops.yml']
+  workflow_dispatch:
+jobs:
+  raw-footage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Tools
+        run: |
+          python -m pip install -q -U yt-dlp
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+      - name: Export only 4 source segments, not pre-cropped montages
+        shell: bash
+        run: |
+          set -euxo pipefail
+          mkdir -p originals
+          URL='https://www.twitch.tv/videos/2937332065'
+          yt-dlp --no-playlist --download-sections '*00:10:20-00:10:48' -S 'res:720' --merge-output-format mp4 -o 'originals/clip_01.%(ext)s' "$URL"
+          yt-dlp --no-playlist --download-sections '*00:32:40-00:33:08' -S 'res:720' --merge-output-format mp4 -o 'originals/clip_02.%(ext)s' "$URL"
+          yt-dlp --no-playlist --download-sections '*00:39:00-00:39:28' -S 'res:720' --merge-output-format mp4 -o 'originals/clip_03.%(ext)s' "$URL"
+          yt-dlp --no-playlist --download-sections '*00:57:50-00:58:18' -S 'res:720' --merge-output-format mp4 -o 'originals/clip_04.%(ext)s' "$URL"
+          for f in originals/*;do
+            ffprobe -v error -show_entries format=duration -show_entries stream=width,height -of compact "$f"
+          done
+      - name: Upload original quality source clips
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Fantik69-Nov22-RAW-4-segments
+          path: originals/*.mp4
+          retention-days: 7
+          compression-level: 0
+          if-no-files-found: warn
