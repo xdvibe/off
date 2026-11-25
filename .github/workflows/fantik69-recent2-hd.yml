@@ -1,0 +1,32 @@
+name: Fantik69 recent two VODs 4 HD excerpts
+on:
+  push:
+    branches: [fantik69-latest-two-4x14-20261125]
+    paths:
+      - fetch_fantik_recent2_hd.py
+      - .github/workflows/fantik69-recent2-hd.yml
+  workflow_dispatch:
+jobs:
+  hd-clips:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install yt-dlp and ffmpeg
+        run: |
+          python -m pip install -q -U yt-dlp
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+      - name: Fetch four high-resolution source excerpts
+        run: python -u fetch_fantik_recent2_hd.py
+      - name: Export original scenes for clean vertical reframing
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Fantik69-recent2-four-HD-originals
+          path: recent2_hd/
+          retention-days: 5
+          compression-level: 0
+          if-no-files-found: warn
