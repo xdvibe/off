@@ -5,7 +5,6 @@ Focus on speakers, remove weak starts/pauses, rerun Russian word-aligned subtitl
 import json, math, os, re, subprocess, sys, wave, zipfile
 from pathlib import Path
 import numpy as np
-import cv2
 from faster_whisper import WhisperModel
 
 URL="https://www.twitch.tv/videos/2937332065"
@@ -117,28 +116,12 @@ def shorten_silence_if_needed(src,number):
     return target
 
 def analyze_face_panes(src,number):
-    cap=cv2.VideoCapture(str(src));width=int(cap.get(cv2.CAP_PROP_FRAME_WIDTH));height=int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    fps=float(cap.get(cv2.CAP_PROP_FPS)) or 30;duration=(cap.get(cv2.CAP_PROP_FRAME_COUNT)/fps)
-    face=cv2.CascadeClassifier(cv2.data.haarcascades+"haarcascade_frontalface_default.xml")
-    boxes=[]
-    for sec in (4,8,12,17,22):
-        cap.set(cv2.CAP_PROP_POS_MSEC,sec*1000)
-        ok,frame=cap.read()
-        if not ok:continue
-        gray=cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)
-        gray=cv2.equalizeHist(gray)
-        detected=face.detectMultiScale(gray,scaleFactor=1.08,minNeighbors=4,minSize=(30,30))
-        for (x,y,w,h) in detected:
-            boxes.append((x+w/2,y+h/2,w*h))
-    cap.release()
-    # Split speakers into left and right when possible.
-    left=sorted([v for v in boxes if v[0]<width*.52],key=lambda v:v[2],reverse=True)
-    right=sorted([v for v in boxes if v[0]>=width*.52],key=lambda v:v[2],reverse=True)
-    centers=[
-        (left[0][0],left[0][1]) if left else (width*.25,height*.45),
-        (right[0][0],right[0][1]) if right else (width*.75,height*.45)
-    ]
-    print("FACE_DETECTION",number,{"w":width,"h":height,"count":len(boxes),"left":len(left),"right":len(right),"centers":centers},flush=True)
+    # Deterministic split-screen areas; no OpenCV dependency or automated face misdetections.
+    info=probe(src)
+    video=next(t for t in info["streams"] if t["codec_type"]=="video")
+    width=int(video["width"]);height=int(video["height"])
+    centers=[(width*.25,height*.44),(width*.75,height*.44)]
+    print("PANE_CENTERS",number,{"w":width,"h":height,"centers":centers},flush=True)
     return width,height,centers
 
 def render(src,number,words,title):
@@ -199,7 +182,7 @@ def main():
         with wave.open(str(audio),"rb") as w:
             raw=w.readframes(w.getnframes())
         a=np.frombuffer(raw,dtype="<i2").astype(np.float32)/32768
-        segments,_=model.transcribe(a,language="ru",beam_size=5,word_timestamps=True,
+        segments,_=model.transcribe(a,language="ru",beam_size=4,word_timestamps=True,
            vad_filter=True,condition_on_previous_text=False,
            initial_prompt="Это русскоязычный стрим Fantik69, быстрые свидания. Вебка, Данька, Хитоми, волосы, скип, ты слишком милый, донат, тысяча рублей.")
         words=[]
