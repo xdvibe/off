@@ -12,12 +12,12 @@ run(["yt-dlp","--no-playlist","--no-part","-S","res:360","--retries","10","--fra
 print("FILE",f.stat().st_size,flush=True)
 run(["ffmpeg","-hide_banner","-loglevel","error","-y","-i",str(f),"-vn","-ar","16000","-ac","1","-c:a","pcm_s16le",str(a)])
 print("AUDIO",a.stat().st_size,flush=True)
-model=WhisperModel("base",device="cpu",compute_type="int8",cpu_threads=4)
+model=WhisperModel("tiny",device="cpu",compute_type="int8",cpu_threads=4)
 import wave,numpy as np
 with wave.open(str(a),"rb") as wf:
     raw=wf.readframes(wf.getnframes())
     audio=np.frombuffer(raw,dtype="<i2").astype(np.float32)/32768.0
-segments,_=model.transcribe(audio,language="ru",beam_size=2,word_timestamps=False,vad_filter=True,condition_on_previous_text=False,temperature=0.0)
+segments,_=model.transcribe(audio,language="ru",beam_size=1,word_timestamps=False,vad_filter=True,condition_on_previous_text=False,temperature=0.0)
 items=[]
 for i,s in enumerate(segments):
  row={"start":round(s.start,2),"end":round(s.end,2),"text":s.text.strip()}
