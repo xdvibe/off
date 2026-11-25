@@ -1,0 +1,30 @@
+name: Fantik69 inspect remaining best audience clips
+on:
+  push:
+    branches: [fantik69-new4-curated-20261125]
+    paths: ['fantik_curate_new.py','.github/workflows/fantik-curate-new.yml']
+  workflow_dispatch:
+jobs:
+  curate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup
+        run: |
+          python -m pip install -q -U yt-dlp requests Pillow numpy faster-whisper
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+      - name: Download 6 candidate Twitch clips and examine speech and screenshots
+        run: python -u fantik_curate_new.py
+      - name: Upload source clips for final montage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Fantik69-additional-curated-clips
+          path: candidates_new/
+          compression-level: 0
+          retention-days: 7
+          if-no-files-found: warn
