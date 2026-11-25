@@ -1,0 +1,48 @@
+name: Fantik69 reference style four new stories
+on:
+  push:
+    branches: [fantik69-reference-reframe-20261126]
+    paths: [fantik_reference_render.py, .github/workflows/fantik-reference-render.yml]
+  workflow_dispatch:
+jobs:
+  edit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        day: ['21', '22']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: |
+          python -m pip install -q -U yt-dlp numpy pillow opencv-python-headless
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg fonts-dejavu-core
+      - run: python -u fantik_reference_render.py "${{ matrix.day }}"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Fantik69-reference-${{ matrix.day }}
+          path: finished/
+          if-no-files-found: warn
+          compression-level: 0
+          retention-days: 7
+  combine:
+    needs: edit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: Fantik69-reference-*
+          path: combined
+          merge-multiple: true
+      - run: test "$(find combined -name '*.mp4' | wc -l)" = 4
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Fantik69-four-reference-style
+          path: combined/
+          retention-days: 7
+          compression-level: 0
