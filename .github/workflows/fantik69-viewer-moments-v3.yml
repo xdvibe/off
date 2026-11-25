@@ -1,0 +1,25 @@
+name: Review recent Fantik69 viewer-selected story clips
+on:
+  push:
+    branches: [fantik69-story-14sec-fix-v3-20261125]
+    paths: ['inspect_recent_fantik_clips.py','.github/workflows/fantik69-viewer-moments-v3.yml']
+  workflow_dispatch:
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          python -m pip install -q -U yt-dlp faster-whisper numpy
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+      - run: python -u inspect_recent_fantik_clips.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Fantik69-v3-viewer-stories-source
+          path: candidate_stories/
+          compression-level: 0
+          retention-days: 5
+          if-no-files-found: warn
