@@ -10,7 +10,7 @@ ROOT=Path("client_demo"); ROOT.mkdir(exist_ok=True)
 SRC=Path("demo_choices/NOV21_TANKS.mp4")
 if not SRC.is_file():
     raise FileNotFoundError(SRC)
-DURATION=9.4
+DURATION=7.1
 def run(cmd):
     print("RUN"," ".join(map(str,cmd))[:300],flush=True)
     subprocess.run([str(x) for x in cmd],check=True)
@@ -77,7 +77,7 @@ print("OUTPUT",out.stat().st_size,info["format"]["duration"],
       [(s.get("codec_type"),s.get("width"),s.get("height")) for s in info["streams"]],flush=True)
 # Expose representative frames in logs as compact base64 for visual QA, and save them as artifacts.
 import base64
-for t in [1.5,5.0,8.3]:
+for t in [1.2,3.8,6.2]:
     still=ROOT/f"proof_{str(t).replace('.','_')}.jpg"
     run(["ffmpeg","-y","-v","error","-ss",str(t),"-i",out,"-frames:v","1","-vf","scale=360:-2","-q:v","7",still])
     print("PROOF_JPEG",t,base64.b64encode(still.read_bytes()).decode(),flush=True)
