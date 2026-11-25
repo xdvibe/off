@@ -1,0 +1,36 @@
+name: Fantik69 quality rework four shorts
+on:
+  push:
+    branches: [fantik69-nov22-quality-v2]
+    paths:
+      - 'fantik69_rework_four.py'
+      - '.github/workflows/fantik69-quality-rework.yml'
+  workflow_dispatch:
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install tools for sharper re-edit
+        run: |
+          python -m pip install -q -U 'yt-dlp>=2026.1.1' 'faster-whisper>=1.1' numpy opencv-python-headless
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg fonts-dejavu-core
+      - name: Recreate four cuts from Twitch with closer faces, clean audio and new word subtitles
+        run: |
+          python -u fantik69_rework_four.py
+      - name: Publish individual MP4 and complete ZIP even if a clip failed
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Fantik69-QUALITY-v2-4MP4
+          path: |
+            Fantik69_quality_v2/READY/*.mp4
+            Fantik69_quality_v2/READY/*.jpg
+            Fantik69_quality_v2/READY/*.ass
+            Fantik69_quality_v2/*.zip
+          retention-days: 7
+          if-no-files-found: warn
