@@ -1,0 +1,27 @@
+name: QA Four Fantik69 Reworks Images
+on:
+  push:
+    branches: [fantik69-nov22-quality-v2]
+    paths: ['.github/workflows/fantik69-review-images.yml']
+  workflow_dispatch:
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch four completed MP4 previews
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh run download 45541493795 -R xdvibe/off -n Fantik69-QUALITY-v2-4MP4 -D review
+          python - <<'PY'
+          import base64,glob,subprocess,pathlib
+          imgs=sorted(glob.glob('review/**/preview_*_12.jpg',recursive=True))
+          print("FOUND_JPGS",imgs)
+          for p in imgs:
+            data=subprocess.check_output(['ffmpeg','-loglevel','error','-i',p,'-vf','scale=255:-2','-q:v','10','-frames:v','1','-f','image2pipe','-vcodec','mjpeg','-'])
+            print("BEGIN_JPEG",pathlib.Path(p).name,base64.b64encode(data).decode(),"END_JPEG",flush=True)
+          PY
