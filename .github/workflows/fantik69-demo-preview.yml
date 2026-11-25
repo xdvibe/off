@@ -1,0 +1,28 @@
+name: Fantik69 one-demo scene QA
+on:
+  push:
+    branches: [fantik69-one-demo-ref-20261125]
+    paths:
+      - demo_preview_select.py
+      - .github/workflows/fantik69-demo-preview.yml
+  workflow_dispatch:
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          python -m pip install -q -U yt-dlp
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+      - name: Compare three moments visually
+        run: python -u demo_preview_select.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Fantik69-demo-scene-raw
+          path: demo_choices/
+          retention-days: 5
+          compression-level: 0
+          if-no-files-found: warn
