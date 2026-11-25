@@ -57,9 +57,9 @@ print("CAPTION_INTERVAL",caption_start,caption_end,flush=True)
 vf=(
  "[0:v]scale=1280:720,split=3[bg][main][face];"
  "[bg]scale=360:640:force_original_aspect_ratio=increase,crop=360:640,gblur=sigma=15,scale=1080:1920[blur];"
- "[main]crop=775:530:200:45,scale=1000:684,setsar=1[scene];"
+ "[main]crop=680:430:300:110,scale=1000:632,setsar=1[scene];"
  "[face]crop=280:205:990:510,scale=720:540,setsar=1[streamer];"
- "[blur][scene]overlay=40:350[tmp1];"
+ "[blur][scene]overlay=40:390[tmp1];"
  "[tmp1][streamer]overlay=180:1120[tmp2];"
  "[tmp2][1:v]overlay=0:0[tmp3];"
  "[tmp3][2:v]overlay=0:0:enable='between(t,"+str(caption_start)+","+str(caption_end)+")'[v]"
@@ -77,7 +77,7 @@ print("OUTPUT",out.stat().st_size,info["format"]["duration"],
       [(s.get("codec_type"),s.get("width"),s.get("height")) for s in info["streams"]],flush=True)
 # Expose representative frames in logs as compact base64 for visual QA, and save them as artifacts.
 import base64
-for t in [1.5,6.5,10.8]:
+for t in [1.5,5.0,8.3]:
     still=ROOT/f"proof_{str(t).replace('.','_')}.jpg"
     run(["ffmpeg","-y","-v","error","-ss",str(t),"-i",out,"-frames:v","1","-vf","scale=360:-2","-q:v","7",still])
     print("PROOF_JPEG",t,base64.b64encode(still.read_bytes()).decode(),flush=True)
