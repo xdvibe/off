@@ -22,6 +22,6 @@ jobs:
           imgs=sorted(glob.glob('review/**/preview_*_12.jpg',recursive=True))
           print("FOUND_JPGS",imgs)
           for p in imgs:
-            data=subprocess.check_output(['ffmpeg','-loglevel','error','-i',p,'-vf','scale=255:-2','-q:v','10','-frames:v','1','-f','image2pipe','-vcodec','mjpeg','-'])
+            data=pathlib.Path(p).read_bytes()
             print("BEGIN_JPEG",pathlib.Path(p).name,base64.b64encode(data).decode(),"END_JPEG",flush=True)
           PY
