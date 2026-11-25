@@ -1,0 +1,34 @@
+name: Scan both Fantik69 VODs for actually interesting moments
+on:
+  push:
+    branches: [fantik69-fullstory-scan-20261126]
+    paths:
+      - scan_full_stream_stories.py
+      - .github/workflows/fantik69-full-stories.yml
+  workflow_dispatch:
+jobs:
+  transcribe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    strategy:
+      fail-fast: false
+      matrix:
+        date: ['2026-11-21','2026-11-22']
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install tools
+        run: |
+          python -m pip install -q -U yt-dlp faster-whisper
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+      - name: Fully transcribe stream and rank potentially interesting stories
+        run: python -u scan_full_stream_stories.py --date '${{ matrix.date }}'
+      - name: Upload transcripts and ranked stories
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Fantik69-stories-${{ matrix.date }}
+          path: |
+            transcripts_full/*.json
+          retention-days: 5
+          if-no-files-found: warn
