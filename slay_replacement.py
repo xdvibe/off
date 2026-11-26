@@ -6,7 +6,7 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 day=sys.argv[1]
 vod={'21':'2936145096','22':'2937332065'}[day]
-scenes=[(7.4,27.0,"КОМУ ПЛЕВАТЬ\nНА SLAY?"),(54.8,73.5,"КОГДА ФАНТИК\nПОПАДЁТ НА SLAY?")]
+scenes=[(7.4,27.0,"КОМУ ПЛЕВАТЬ\nНА SLAY?"),(54.8,73.8,"КОГДА ФАНТИК\nПОПАДЁТ НА SLAY?")]
 out=Path('finished');out.mkdir(exist_ok=True);work=Path('work');work.mkdir(exist_ok=True)
 def run(args):
     subprocess.run([str(x) for x in args],check=True)
@@ -29,14 +29,14 @@ def overlay(title,path):
     for i,line in enumerate(lines):
         d.text((540,288+i*(fs+2)),line,font=font,anchor='mt',fill='white',stroke_width=6,stroke_fill='black')
     # Large flat purple Twitch-style nameplate, at lower edge of the camera.
-    x0,y0,x1,y1=194,1456,948,1586
+    x0,y0,x1,y1=194,1550,948,1680
     d.rectangle((x0,y0,x1,y1),fill='#a33df5')
-    ix,iy=222,1477
+    ix,iy=222,1571
     d.polygon([(ix,iy+15),(ix+14,iy),(ix+73,iy),(ix+73,iy+50),(ix+51,iy+72),(ix+35,iy+72),(ix+18,iy+91),(ix+18,iy+69),(ix,iy+69)],fill='#141018')
     d.polygon([(ix+18,iy+10),(ix+63,iy+10),(ix+63,iy+45),(ix+47,iy+60),(ix+32,iy+60),(ix+24,iy+68),(ix+24,iy+56),(ix+18,iy+56)],fill='white')
     for px in (ix+35,ix+49):d.rectangle((px,iy+18,px+6,iy+34),fill='#141018')
     namefont=ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',105)
-    d.text((348,1522),'FANTIK_69',font=namefont,fill='white',anchor='lm')
+    d.text((348,1616),'FANTIK_69',font=namefont,fill='white',anchor='lm')
     im.save(path)
 meta=[]
 model=WhisperModel('small',device='cpu',compute_type='int8',cpu_threads=4)
@@ -75,14 +75,16 @@ for i,(st,en,title) in enumerate(scenes,1):
         relevant=[f for f in relevant if f[2]*f[3]>=maxarea*.48]
         cx=statistics.median(f[0]+f[2]/2 for f in relevant)
     else:cx=bx+bw*(.50 if is_show else .35)
-    x=int(max(bx,min(bx+bw-crop_w,cx-crop_w/2)))//2*2
-    y=by//2*2
+    # Site layout: host webcam occupies the lower-right of the original 16:9 frame.
+    x=int(W*0.6667)//2*2; y=int(H*0.6667)//2*2
+    crop_w=(W-x)//2*2; crop_h=(H-y)//2*2
     print('CROP',day,i,x,y,crop_w,crop_h,'show',is_show,flush=True)
     png=work/f'overlay_{i}.png';overlay(title,png)
     dest=out/f'FANTIK69_SLAY_NEW_{i}.mp4'
     # Ref layout: center 1080x1116 camera at y=402, only blurred camera above/below.
-    vf=f'[0:v]crop={crop_w}:{crop_h}:{x}:{y},split=2[a][b];[a]scale=540:960:force_original_aspect_ratio=increase,crop=540:960,gblur=sigma=28,eq=brightness=-0.15,scale=1080:1920[bg];[b]scale=1080:1116[fg];[bg][fg]overlay=0:402[base];[base][1:v]overlay=0:0:format=auto,format=yuv420p[v]'
+    vf=f'[0:v]split=2[full][cam];[cam]crop={crop_w}:{crop_h}:{x}:{y},split=2[a][b];[a]scale=540:960:force_original_aspect_ratio=increase,crop=540:960,gblur=sigma=28,eq=brightness=-0.15,scale=1080:1920[bg];[b]scale=1080:840:force_original_aspect_ratio=increase,crop=1080:840[fg];[full]crop={W}:{int(H*0.52)//2*2}:0:{int(H*0.16)//2*2},scale=1080:310:force_original_aspect_ratio=decrease,pad=1080:310:(ow-iw)/2:(oh-ih)/2:black[site];[bg][fg]overlay=0:400[base];[base][site]overlay=0:1240[withsite];[withsite][1:v]overlay=0:0:format=auto,format=yuv420p[v]'
     run(['ffmpeg','-hide_banner','-loglevel','error','-y','-ss',st,'-i',src,'-i',png,'-t',duration,'-filter_complex_threads','2','-filter_complex',vf,'-map','[v]','-map','0:a:0','-r','30','-c:v','libx264','-preset','fast','-crf','18','-pix_fmt','yuv420p','-c:a','aac','-b:a','192k','-movflags','+faststart',dest])
+    run(['ffmpeg','-v','error','-y','-ss',st,'-i',src,'-t',duration,'-c:v','libx264','-preset','veryfast','-crf','19','-c:a','aac',out/f'raw_{i}.mp4'])
     actual=probe(dest);d=float(actual['format']['duration'])
     if d>20.0:raise RuntimeError('Duration exceeded 20 seconds')
     run(['ffmpeg','-v','error','-y','-ss',min(3,d/2),'-i',dest,'-frames:v','1','-vf','scale=540:960',out/f'preview_{day}_{i}.jpg'])
