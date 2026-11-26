@@ -1,0 +1,28 @@
+name: Replace weak neighbors clip with dating punchline
+on:
+  push:
+    branches: [fantik69-replace-neighbors-20261126]
+    paths: [replace_neighbors.py, .github/workflows/replace-neighbors.yml]
+  workflow_dispatch:
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: |
+          python -m pip install -q -U yt-dlp pillow numpy scipy faster-whisper
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg fonts-dejavu-core
+      - run: python -u replace_neighbors.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Fantik69-dating-punchline-music
+          path: finished/
+          if-no-files-found: warn
+          compression-level: 0
+          retention-days: 7
