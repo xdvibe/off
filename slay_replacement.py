@@ -84,7 +84,7 @@ for i,(st,en,title) in enumerate(scenes,1):
     vf=f'[0:v]crop={crop_w}:{crop_h}:{x}:{y},split=2[a][b];[a]scale=540:960:force_original_aspect_ratio=increase,crop=540:960,gblur=sigma=28,eq=brightness=-0.15,scale=1080:1920[bg];[b]scale=1080:1116[fg];[bg][fg]overlay=0:402[base];[base][1:v]overlay=0:0:format=auto,format=yuv420p[v]'
     run(['ffmpeg','-hide_banner','-loglevel','error','-y','-ss',st,'-i',src,'-i',png,'-t',duration,'-filter_complex_threads','2','-filter_complex',vf,'-map','[v]','-map','0:a:0','-r','30','-c:v','libx264','-preset','fast','-crf','18','-pix_fmt','yuv420p','-c:a','aac','-b:a','192k','-movflags','+faststart',dest])
     actual=probe(dest);d=float(actual['format']['duration'])
-    if d>14:raise RuntimeError('Duration exceeded')
+    if d>20.0:raise RuntimeError('Duration exceeded 20 seconds')
     run(['ffmpeg','-v','error','-y','-ss',min(3,d/2),'-i',dest,'-frames:v','1','-vf','scale=540:960',out/f'preview_{day}_{i}.jpg'])
     meta.append({'file':dest.name,'vod':vod,'start':2280+st,'end':2280+en,'duration':d,'title':title,'crop':[x,y,crop_w,crop_h],'show_layout':is_show})
     print('EXPORTED',meta[-1],flush=True)
