@@ -1,0 +1,34 @@
+name: Fantik69 topical SLAY replacement
+on:
+  push:
+    branches: [fantik69-slay-replacement-20261126]
+    paths: [slay_replacement.py, .github/workflows/slay-replacement.yml]
+  workflow_dispatch:
+jobs:
+  edit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        day: ['21']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: |
+          python -m pip uninstall -y opencv-python opencv-contrib-python opencv-contrib-python-headless opencv-python-headless || true
+          python -m pip install -q -U yt-dlp pillow 'numpy==2.2.6' 'opencv-python-headless==4.11.0.86' faster-whisper
+          python -c "import cv2; print(cv2.__version__); assert hasattr(cv2, 'CascadeClassifier')"
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg fonts-dejavu-core
+      - run: python -u slay_replacement.py "${{ matrix.day }}"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Fantik69-SLAY-replacement-${{ matrix.day }}
+          path: finished/
+          if-no-files-found: warn
+          compression-level: 0
+          retention-days: 7
