@@ -1,0 +1,28 @@
+name: Fantik69 Nov27 second pass unused stories
+on:
+  push:
+    branches: [fantik69-nov27-second-pass]
+    paths: [review_nov27_second_pass.py, .github/workflows/fantik-nov27-second-pass.yml]
+  workflow_dispatch:
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: |
+          python -m pip install -q -U yt-dlp faster-whisper numpy
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+      - run: python -u review_nov27_second_pass.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Fantik69-Nov27-unused-story-review
+          path: review2/
+          retention-days: 7
+          compression-level: 0
+          if-no-files-found: warn
