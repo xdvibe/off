@@ -1,0 +1,30 @@
+name: Fantik69 November 26 full highlight scan
+on:
+  push:
+    branches: [fantik69-nov26-new-four]
+    paths: [scan_nov26.py, .github/workflows/fantik-nov26-scan.yml]
+  workflow_dispatch:
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: |
+          python -m pip install -q -U yt-dlp faster-whisper numpy requests pillow
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+      - run: python -u scan_nov26.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Fantik69-Nov26-review-candidates
+          path: review/
+          retention-days: 7
+          compression-level: 0
+          if-no-files-found: warn
