@@ -13,9 +13,12 @@ r=requests.post('https://gql.twitch.tv/gql',headers={'Client-ID':'kimne78kx3ncx6
 r.raise_for_status()
 nodes=[x['node'] for x in r.json()['data']['user']['videos']['edges']]
 print('VODS',json.dumps(nodes,ensure_ascii=False),flush=True)
-matches=[v for v in nodes if v['createdAt'].startswith('2026-11-26') and 'МЕДЛЕННЫЕ СВИДАНИЯ' in v['title'].upper()]
-if not matches:raise RuntimeError('Exact Nov 26 broadcast was not found; refusing to substitute older VOD')
-vod=matches[0];(P/'source.json').write_text(json.dumps(vod,ensure_ascii=False,indent=2))
+nodes.sort(key=lambda v:v['createdAt'],reverse=True)
+if not nodes:raise RuntimeError('No archived streams available')
+vod=nodes[0]
+print('LATEST_VOD',json.dumps(vod,ensure_ascii=False),flush=True)
+if vod['createdAt']<'2026-11-26T14:00:00Z':raise RuntimeError('No new broadcast for Nov 27 Vladivostok local date; refusing older footage')
+(P/'source.json').write_text(json.dumps(vod,ensure_ascii=False,indent=2))
 url='https://www.twitch.tv/videos/'+vod['id']
 src=W/'vod.mp4'
 run(['yt-dlp','--no-playlist','--no-part','-S','res:720','--retries','10','--fragment-retries','10','--concurrent-fragments','4','--merge-output-format','mp4','-o',src,url])
